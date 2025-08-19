@@ -1,0 +1,4 @@
+# Defined 3-node graph for Max Cut
+# Format: node1 node2 weight
+0 1 1
+1 2 2
