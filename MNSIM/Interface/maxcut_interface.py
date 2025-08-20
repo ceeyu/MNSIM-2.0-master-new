@@ -57,7 +57,11 @@ class MaxCutInterface:
             G = nx.Graph()
             with open(self.graph_file, 'r') as f:
                 for line in f:
-                    parts = line.strip().split()
+                    line = line.strip()
+                    # 跳過空行和註解行
+                    if not line or line.startswith('#'):
+                        continue
+                    parts = line.split()
                     if len(parts) >= 2:
                         u, v = int(parts[0]), int(parts[1])
                         weight = float(parts[2]) if len(parts) > 2 else 1.0

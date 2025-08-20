@@ -29,18 +29,23 @@ class MaxCutTCG(TCG):
         # 建立假的層結構以相容現有的 TCG
         fake_structure = []
         for layer_info in maxcut_structure['layers']:
-            fake_layer = [
-                layer_info['type'],           # 層類型
-                [layer_info['input_size']],   # 輸入維度
-                [layer_info['output_size']],  # 輸出維度
-                layer_info['input_size'],     # 輸入通道
-                layer_info['output_size'],    # 輸出通道
-                1,                           # 核心大小
-                1,                           # 步長
-                0,                           # 填充
-                1,                           # 群組
-                0                            # 偏置
-            ]
+            # 建立符合 TCG 期望的字典格式
+            fake_layer_dict = {
+                'type': 'fc',  # 使用 fc 類型，因為 Max Cut 是矩陣向量乘法
+                'Infeature': layer_info['input_size'],
+                'Outfeature': layer_info['output_size'],
+                'Weightbit': 8,  # 8-bit 權重
+                'Inputbit': 8,   # 8-bit 輸入
+                'outputbit': 8,  # 8-bit 輸出
+                'Inputindex': [-1],  # 輸入層索引
+                'Outputindex': [1],  # 輸出層索引
+                'row_split_num': 1,  # 行分割數
+                'weight_bit_split_part': 1,  # 權重位元分割部分
+                'Layerindex': 0  # 層索引
+            }
+            
+            # TCG 期望的格式：[[[layer_dict]]] - 直接使用字典，不是元組
+            fake_layer = [[[fake_layer_dict]]]
             fake_structure.append(fake_layer)
         
         # 初始化父類別
