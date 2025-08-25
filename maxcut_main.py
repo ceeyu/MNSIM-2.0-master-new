@@ -44,7 +44,8 @@ class MaxCutTCG(TCG):
                 'Layerindex': 0  # 層索引
             }
             
-            # TCG 期望的格式：[[[layer_dict]]] - 直接使用字典，不是元組
+            # TCG 期望的格式：[[[layer_dict]]] - 三層嵌套列表
+            # 每個層是一個包含一個列表的列表，該列表包含一個字典
             fake_layer = [[[fake_layer_dict]]]
             fake_structure.append(fake_layer)
         
@@ -134,13 +135,19 @@ def main():
     # 取得問題結構
     structure = maxcut_interface.get_structure()
     
-    # 建立客製化的 TCG 映射
-    TCG_mapping = MaxCutTCG(structure, args.hardware_description)
+    # 建立客製化的 TCG 映射（如果啟用硬體建模）
+    TCG_mapping = None
+    if not args.disable_hardware_modeling:
+        try:
+            TCG_mapping = MaxCutTCG(structure, args.hardware_description)
+        except Exception as e:
+            print(f"警告: 硬體映射失敗，跳過硬體建模: {e}")
+            args.disable_hardware_modeling = True
     
     mapping_end_time = time.time()
     
     # 硬體模擬
-    if not args.disable_hardware_modeling:
+    if not args.disable_hardware_modeling and TCG_mapping is not None:
         hardware_modeling_start_time = time.time()
         
         print("\n" + "=" * 50)
@@ -282,11 +289,17 @@ def main():
     print(f"分割結果: {best_partition}")
     
     # 分析分割品質
-    partition_0 = np.sum(best_partition == 0)
-    partition_1 = np.sum(best_partition == 1)
-    print(f"分割 0 的節點數: {partition_0}")
-    print(f"分割 1 的節點數: {partition_1}")
-    print(f"分割平衡度: {min(partition_0, partition_1) / max(partition_0, partition_1):.3f}")
+    if best_partition is not None:
+        partition_0 = np.sum(best_partition == 0)
+        partition_1 = np.sum(best_partition == 1)
+        print(f"分割 0 的節點數: {partition_0}")
+        print(f"分割 1 的節點數: {partition_1}")
+        if max(partition_0, partition_1) > 0:
+            print(f"分割平衡度: {min(partition_0, partition_1) / max(partition_0, partition_1):.3f}")
+        else:
+            print("分割平衡度: N/A")
+    else:
+        print("分割結果: 無有效分割")
     
     # 時間統計
     mapping_time = mapping_end_time - mapping_start_time
@@ -314,7 +327,10 @@ def main():
         f.write(f"Graph file: {args.graph_file}\n")
         f.write(f"Algorithm: {args.algorithm}\n")
         f.write(f"Best cut value: {best_value}\n")
-        f.write(f"Partition: {' '.join(map(str, best_partition))}\n")
+        if best_partition is not None:
+            f.write(f"Partition: {' '.join(map(str, best_partition))}\n")
+        else:
+            f.write(f"Partition: None\n")
         f.write(f"Total time: {total_time:.3f} seconds\n")
     
     print(f"\n結果已儲存至: {result_file}")

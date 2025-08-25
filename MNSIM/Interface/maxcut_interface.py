@@ -88,7 +88,7 @@ class MaxCutInterface:
             'algorithm': self.algorithm,
             'layers': [
                 {
-                    'type': 'matrix_vector_multiply',
+                    'type': 'fc',  # 使用 fc 類型以相容 TCG
                     'input_size': self.num_nodes,
                     'output_size': self.num_nodes,
                     'weight_matrix': self.adjacency_matrix,
