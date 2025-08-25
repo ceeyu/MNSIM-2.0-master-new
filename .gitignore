@@ -1,4 +1,13 @@
 # Created by .ignore support plugin (hsz.mobi)
+# --- Virtual environments (ignore common names) ---
+.venv/
+.venv*/
+venv/
+env/
+ENV/
+.venv311/
+.venv3*/
+
 .idea/
 *.xml
 /.vscode
