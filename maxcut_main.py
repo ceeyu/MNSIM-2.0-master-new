@@ -8,7 +8,6 @@ import numpy as np
 import time
 from importlib import import_module
 from MNSIM.Interface.maxcut_interface import MaxCutInterface
-from MNSIM.Interface.psav_adapter import run_psa_with_mnsim_mapping
 from MNSIM.Interface.rram_psa import run_rram_psa
 from MNSIM.Latency_Model.Model_latency import Model_latency
 from MNSIM.Area_Model.Model_Area import Model_area
@@ -120,7 +119,7 @@ class MaxCutTCG:
 
 def main():
     home_path = os.getcwd()
-    SimConfig_path = os.path.join(home_path, "SimConfig.ini")
+    SimConfig_path = os.path.join(home_path, "SimConfig_MaxCut.ini")
     
     parser = argparse.ArgumentParser(description='MNSIM Max Cut Example')
     parser.add_argument("-AutoDelete", "--file_auto_delete", default=True,
@@ -129,13 +128,10 @@ def main():
         help="Hardware description file location & name")
     parser.add_argument("-Graph", "--graph_file", required=True,
         help="Graph file location & name (txt/csv/graphml format)")
-    parser.add_argument("-Alg", "--algorithm", default='goemans_williamson',
-        choices=['goemans_williamson', 'greedy', 'semidefinite', 'psav_psa', 'rram_psa'],
-        help="Max Cut algorithm choice")
-    parser.add_argument("-Iter", "--iterations", type=int, default=100,
-        help="Number of iterations for the algorithm")
-    parser.add_argument("--spin_vector", type=str, default=None,
-        help="Optional spin vector in the form '1,-1,1' to be used as test input")
+    parser.add_argument("-Alg", "--algorithm", default='rram_psa',
+        choices=['rram_psa'],
+        help="Max Cut algorithm choice (專注於 RRAM pSA)")
+
     parser.add_argument("-DisHW", "--disable_hardware_modeling", action='store_true', default=False,
         help="Disable hardware modeling")
     parser.add_argument("-D", "--device", default=0,
@@ -144,23 +140,22 @@ def main():
         help="Disable module simulation results output")
     parser.add_argument("-DisLayOut", "--disable_layer_output", action='store_true', default=False,
         help="Disable layer-wise simulation results output")
-    # pSAv 相關參數（僅支援 pSA）
-    parser.add_argument("--psav_cycles", type=int, default=200, help="pSAv cycles")
-    parser.add_argument("--psav_trials", type=int, default=50, help="pSAv trials")
-    parser.add_argument("--psav_tau", type=int, default=1, help="pSAv tau")
-    parser.add_argument("--psav_param", type=int, default=2, help="pSAv param (2 推薦)")
-    parser.add_argument("--psav_thread", type=int, default=32, help="pSAv threads per block (y 維度)")
-    parser.add_argument("--psav_gpu", type=int, default=0, help="pSAv GPU device id")
+    # RRAM pSA 相關參數
+    parser.add_argument("--rram_cycles", type=int, default=200, help="RRAM pSA 退火週期數")
+    parser.add_argument("--rram_trials", type=int, default=50, help="RRAM pSA 試驗次數")
+    parser.add_argument("--rram_tau", type=int, default=1, help="RRAM pSA tau 參數")
+    parser.add_argument("--rram_param", type=int, default=2, help="RRAM pSA 參數類型 (2 推薦)")
     
     args = parser.parse_args()
     
     print("=" * 60)
-    print("MNSIM Max Cut 模擬器")
+    print("MNSIM RRAM pSA Max Cut 模擬器")
     print("=" * 60)
     print("硬體描述檔位置:", args.hardware_description)
     print("圖檔案位置:", args.graph_file)
     print("求解算法:", args.algorithm)
-    print("迭代次數:", args.iterations)
+    print("RRAM pSA 試驗次數:", args.rram_trials)
+    print("RRAM pSA 退火週期:", args.rram_cycles)
     print("是否執行硬體模擬:", not args.disable_hardware_modeling)
     print("=" * 60)
     
@@ -263,80 +258,35 @@ def main():
         
         hardware_modeling_end_time = time.time()
     
-    # Max Cut 求解
+    # RRAM pSA Max Cut 求解
     print("\n" + "=" * 50)
-    print("開始 Max Cut 求解...")
+    print("開始 RRAM pSA Max Cut 求解...")
     print("=" * 50)
     
     maxcut_start_time = time.time()
     
     # 準備硬體映射資料
     crossbar_partitions = maxcut_interface.partition_matrix_to_crossbars()
-    # 若提供了使用者的 spin 向量，直接使用該向量（量化後）作為測試向量
-    if args.spin_vector is not None:
-        try:
-            raw_vals = [float(x) for x in args.spin_vector.replace("[", "").replace("]", "").replace(" ", "").split(',') if x != '']
-            user_vec = np.array(raw_vals, dtype=float)
-            if user_vec.shape[0] != maxcut_interface.num_nodes:
-                print(f"警告: 提供的 spin 向量長度({user_vec.shape[0]}) 與圖節點數({maxcut_interface.num_nodes})不一致，將嘗試截斷或填零")
-                vec = np.zeros(maxcut_interface.num_nodes, dtype=float)
-                m = min(maxcut_interface.num_nodes, user_vec.shape[0])
-                vec[:m] = user_vec[:m]
-                user_vec = vec
-            quantized_vec = maxcut_interface._quantize_vector(user_vec)
-            test_vectors = [quantized_vec]
-            # 另外計算並回報此 spin 向量直接對應的 cut value（以 0/1 分割方式）
-            partition_from_spin = (user_vec > 0).astype(int)
-            user_cut_value = maxcut_interface.evaluate_cut_value(partition_from_spin)
-            print(f"使用者提供 spin 向量的 cut 值: {user_cut_value:.2f}")
-        except Exception as e:
-            print(f"解析 --spin_vector 發生錯誤: {e}")
-            print("改為使用預設隨機測試向量")
-            test_vectors = maxcut_interface.create_test_vectors(args.iterations)
-    else:
-        test_vectors = maxcut_interface.create_test_vectors(args.iterations)
     
-    print(f"矩陣分割到 {len(crossbar_partitions)} 個 crossbar")
-    print(f"產生 {len(test_vectors)} 個測試向量")
+    print(f"RRAM 矩陣分割到 {len(crossbar_partitions)} 個 crossbar")
     
-    # 執行硬體加速的 Max Cut 求解
-    if args.algorithm == 'psav_psa':
-        # 直接以 MNSIM 的 RRAM 權重映射生成 J/h，呼叫 GPU pSA 核心
-        psav_res = run_psa_with_mnsim_mapping(
-            graph_file=args.graph_file,
-            SimConfig_path=args.hardware_description,
-            gpu=int(args.psav_gpu),
-            cycles=int(args.psav_cycles),
-            trials=int(args.psav_trials),
-            tau=int(args.psav_tau),
-            thread=int(args.psav_thread),
-            param=int(args.psav_param)
-        )
-        print("pSA cut 值清單:", psav_res['cut_list'])
-        print("pSA 時間(ms):", psav_res['time_list'])
-        best_partition, best_value = (None, float('nan'))
-    elif args.algorithm == 'rram_psa':
-        # 使用 RRAM crossbar 的 pSA 實作
-        rram_res = run_rram_psa(
-            graph_file=args.graph_file,
-            SimConfig_path=args.hardware_description,
-            trials=args.psav_trials,
-            cycles=args.psav_cycles,
-            tau=args.psav_tau,
-            param_type=args.psav_param
-        )
-        best_partition = rram_res.get('best_partition', None)
-        best_value = rram_res.get('best_cut_value', rram_res['cut_max'])
-    else:
-        best_partition, best_value = maxcut_interface.solve_maxcut_hardware(
-            crossbar_partitions, test_vectors
-        )
+    # 執行 RRAM pSA 求解
+    rram_res = run_rram_psa(
+        graph_file=args.graph_file,
+        SimConfig_path=args.hardware_description,
+        trials=args.rram_trials,
+        cycles=args.rram_cycles,
+        tau=args.rram_tau,
+        param_type=args.rram_param
+    )
+    best_partition = rram_res.get('best_partition', None)
+    best_value = rram_res.get('best_cut_value', rram_res['cut_max'])
     
     maxcut_end_time = time.time()
     
     # 結果輸出
     print("\n" + "=" * 50)
-    print("Max Cut 求解結果")
+    print("RRAM pSA Max Cut 求解結果")
     print("=" * 50)
     print(f"最佳分割值: {best_value:.2f}")
     print(f"分割結果: {best_partition}")
