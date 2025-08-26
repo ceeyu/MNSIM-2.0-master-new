@@ -250,7 +250,10 @@ class MaxCutInterface:
                 # 執行矩陣向量乘法 (這裡會調用 RRAM crossbar 模擬)
                 resistance_matrix = partition_info['resistance_matrix']
                 # 簡化的 MVM 計算：以電導 G=1/R 模擬，對於補零位置(R=0)視為 G=0
-                conductance_matrix = np.where(resistance_matrix > 0, 1.0 / resistance_matrix, 0.0)
+                # 避免除零警告：只有當電阻 > 小閾值時才計算電導
+                min_resistance = 1e-10
+                conductance_matrix = np.where(resistance_matrix > min_resistance, 
+                                            1.0 / resistance_matrix, 0.0)
                 result_segment = np.dot(conductance_matrix, vec_segment)
                 result_parts.append(result_segment[:actual_rows])
             

@@ -47,7 +47,10 @@ class RRAMpSA:
                 vec_segment = vec_padded
             
             # RRAM MVM：電導矩陣 × 電壓向量 = 電流向量
-            conductance_matrix = np.where(resistance_matrix > 0, 1.0 / resistance_matrix, 0.0)
+            # 避免除零警告：只有當電阻 > 小閾值時才計算電導
+            min_resistance = 1e-10  # 最小電阻閾值
+            conductance_matrix = np.where(resistance_matrix > min_resistance, 
+                                        1.0 / resistance_matrix, 0.0)
             current_segment = np.dot(conductance_matrix, vec_segment)
             
             # 累加到結果向量
@@ -149,6 +152,8 @@ class RRAMpSA:
         
         cut_list = []
         time_list = []
+        best_cut = -1
+        best_partition = None
         
         for trial in range(trials):
             print(f"Trial {trial + 1}/{trials}")
@@ -178,6 +183,12 @@ class RRAMpSA:
             cut_list.append(int(final_cut))
             time_list.append(trial_time)
             
+            # 保存最佳結果
+            if final_cut > best_cut:
+                best_cut = final_cut
+                # 將 spin 向量轉換為分割：spin = 1 → partition = 1, spin = -1 → partition = 0
+                best_partition = np.where(spin_vector > 0, 1, 0)
+            
             print(f"  Cut value: {final_cut:.0f}, Time: {trial_time:.2f} ms")
         
         # 統計結果
@@ -190,7 +201,9 @@ class RRAMpSA:
             'cut_std': np.std(cut_list),
             'time_avg': np.mean(time_list),
             'trials': trials,
-            'n_nodes': self.n
+            'n_nodes': self.n,
+            'best_partition': best_partition,
+            'best_cut_value': best_cut
         }
         
         return results

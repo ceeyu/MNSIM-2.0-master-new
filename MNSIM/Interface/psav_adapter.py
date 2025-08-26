@@ -16,7 +16,9 @@ def _to_int8_J_from_rram(adj_matrix: np.ndarray,
     - MaxCut 的 Ising 轉換使用 J = -G_scaled
     - 對角設為 0，並確保對稱
     """
-    conductance = np.where(resistance_matrix > 0, 1.0 / resistance_matrix, 0.0)
+    # 避免除零警告：只有當電阻 > 小閾值時才計算電導
+    min_resistance = 1e-10
+    conductance = np.where(resistance_matrix > min_resistance, 1.0 / resistance_matrix, 0.0)
     max_g = np.max(conductance)
     if max_g <= 0:
         norm = np.zeros_like(conductance)

@@ -1,5 +1,5 @@
 Graph file: test_graphs/random_10nodes.txt
 Algorithm: rram_psa
-Best cut value: 26
-Partition: None
-Total time: 0.107 seconds
+Best cut value: 20.181000351905823
+Partition: 0 0 1 1 0 0 0 0 1 0
+Total time: 0.051 seconds
