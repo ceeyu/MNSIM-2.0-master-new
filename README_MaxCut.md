@@ -200,7 +200,7 @@ python maxcut_main.py --graph_file test_graphs/random_50nodes.txt --algorithm rr
 | 參數 | 說明 | 預設值 |
 |------|------|--------|
 | `--graph_file` | 圖檔案路徑 | 必填 |
-| `--algorithm` | 演算法選擇 | `goemans_williamson` |
+| `--algorithm` | 演算法選擇 | `RRAM psa` |
 | `--hardware_description` | 硬體設定檔 | `SimConfig.ini` |
 | `--disable_hardware_modeling` | 關閉硬體建模 | `False` |
 
