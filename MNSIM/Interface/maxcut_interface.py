@@ -53,24 +53,87 @@ class MaxCutInterface:
     def _load_graph(self) -> nx.Graph:
         """載入圖檔案"""
         if self.graph_file.endswith('.txt') or self.graph_file.endswith('.csv'):
-            # 假設格式: node1 node2 weight
             G = nx.Graph()
+            
+            # 檢查是否為 Gxx benchmark 格式
             with open(self.graph_file, 'r') as f:
-                for line in f:
-                    line = line.strip()
-                    # 跳過空行和註解行
-                    if not line or line.startswith('#'):
-                        continue
-                    parts = line.split()
-                    if len(parts) >= 2:
-                        u, v = int(parts[0]), int(parts[1])
-                        weight = float(parts[2]) if len(parts) > 2 else 1.0
-                        G.add_edge(u, v, weight=weight)
-            return G
+                first_line = f.readline().strip()
+                
+                # 嘗試解析為整數（節點數）
+                try:
+                    num_nodes = int(first_line)
+                    # 這是 Gxx benchmark 格式
+                    return self._load_gxx_benchmark_format()
+                except ValueError:
+                    # 這是標準格式，重新讀取檔案
+                    f.seek(0)
+                    return self._load_standard_format()
+                    
         elif self.graph_file.endswith('.graphml'):
             return nx.read_graphml(self.graph_file)
         else:
             raise ValueError(f"不支援的圖檔案格式: {self.graph_file}")
+    
+    def _load_gxx_benchmark_format(self) -> nx.Graph:
+        """載入 Gxx benchmark 格式的圖檔案"""
+        G = nx.Graph()
+        
+        with open(self.graph_file, 'r') as f:
+            lines = f.readlines()
+            
+        # 第一行：節點數
+        num_nodes = int(lines[0].strip())
+        
+        # 第二行：圖類型（unipolar/bipolar）
+        graph_type = lines[1].strip()
+        
+        # 第三行：圖生成方式（random/structured等）
+        generation_method = lines[2].strip()
+        
+        # 第四行：邊數
+        num_edges = int(lines[3].strip())
+        
+        print(f"Gxx Benchmark 格式檢測:")
+        print(f"  節點數: {num_nodes}")
+        print(f"  圖類型: {graph_type}")
+        print(f"  生成方式: {generation_method}")
+        print(f"  邊數: {num_edges}")
+        
+        # 從第五行開始是邊的資料
+        for i in range(4, len(lines)):
+            line = lines[i].strip()
+            if not line:
+                continue
+                
+            parts = line.split()
+            if len(parts) >= 2:
+                u = int(parts[0])
+                v = int(parts[1])
+                weight = float(parts[2]) if len(parts) > 2 else 1.0
+                
+                # Gxx benchmark 的節點編號從 1 開始，轉換為從 0 開始
+                u = u - 1
+                v = v - 1
+                
+                G.add_edge(u, v, weight=weight)
+        
+        return G
+    
+    def _load_standard_format(self) -> nx.Graph:
+        """載入標準格式的圖檔案"""
+        G = nx.Graph()
+        with open(self.graph_file, 'r') as f:
+            for line in f:
+                line = line.strip()
+                # 跳過空行和註解行
+                if not line or line.startswith('#'):
+                    continue
+                parts = line.split()
+                if len(parts) >= 2:
+                    u, v = int(parts[0]), int(parts[1])
+                    weight = float(parts[2]) if len(parts) > 2 else 1.0
+                    G.add_edge(u, v, weight=weight)
+        return G
     
     def _get_adjacency_matrix(self) -> np.ndarray:
         """取得加權鄰接矩陣"""
