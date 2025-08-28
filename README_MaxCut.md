@@ -200,7 +200,7 @@ python maxcut_main.py --graph_file test_graphs/random_50nodes.txt --algorithm rr
 | 參數 | 說明 | 預設值 |
 |------|------|--------|
 | `--graph_file` | 圖檔案路徑 | 必填 |
-| `--algorithm` | 演算法選擇 | `goemans_williamson` |
+| `--algorithm` | 演算法選擇 | `RRAM psa` |
 | `--hardware_description` | 硬體設定檔 | `SimConfig.ini` |
 | `--disable_hardware_modeling` | 關閉硬體建模 | `False` |
 
@@ -320,39 +320,3 @@ done
 python maxcut_main.py --graph_file test_graphs/defined_3nodes.txt --algorithm rram_psa --psav_trials 1 --psav_cycles 10
 ```
 
-## 📊 效能基準
-
-在測試環境下的參考效能：
-
-| 圖大小 | 演算法 | 平均 Cut 值 | 執行時間 |
-|--------|--------|-------------|----------|
-| 3 節點 | rram_psa | 3.0 | ~10ms |
-| 10 節點 | rram_psa | ~85% 最佳 | ~50ms |
-| 50 節點 | rram_psa | ~80% 最佳 | ~500ms |
-
-## 🤝 貢獻指南
-
-歡迎提交 Issue 和 Pull Request！
-
-### 開發環境設置
-
-1. Fork 專案
-2. 建立功能分支：`git checkout -b feature/new-algorithm`
-3. 提交變更：`git commit -m 'Add new algorithm'`
-4. 推送分支：`git push origin feature/new-algorithm`
-5. 建立 Pull Request
-
-## 📜 授權條款
-
-本專案基於原 MNSIM 授權條款發佈。
-
-## 📞 聯絡方式
-
-如有問題或建議，請：
-1. 建立 GitHub Issue
-2. 聯絡開發團隊
-
----
-
-**最後更新**：2024年12月
-**版本**：v1.0.0
