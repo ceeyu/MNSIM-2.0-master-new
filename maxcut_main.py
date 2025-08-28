@@ -67,7 +67,7 @@ class MaxCutTCG:
             self.NetStruct.append([[layer_dict]])
         
         print(f"MaxCut TCG 初始化完成：{self.layer_num} 層")
-    
+    '''
     def mapping_net(self):
         """提供硬體模擬模組期望的網路映射方法"""
         pass  # Max Cut 的映射已經在初始化中完成
@@ -88,7 +88,7 @@ class MaxCutTCG:
     def calculate_input_stationary(self):
         """計算輸入固定策略 - 硬體建模需要"""
         pass
-    
+    '''
     def __getattr__(self, name):
         """提供基本屬性以相容硬體模擬模組"""
         if name == 'net_structure':

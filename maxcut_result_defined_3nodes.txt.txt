@@ -1,5 +1,5 @@
 Graph file: test_graphs/defined_3nodes.txt
 Algorithm: rram_psa
 Best cut value: 3.0
-Partition: 0 1 0
-Total time: 0.096 seconds
+Partition: 1 0 1
+Total time: 0.280 seconds
