@@ -161,7 +161,7 @@ class MaxCutInterface:
         }
         return structure
     
-    def quantize_weights(self) -> np.ndarray:
+    def quantize_weights(self) -> np.ndarray: # 量化權重
         """
         將加權矩陣量化到 RRAM 電阻值
         """
@@ -203,6 +203,7 @@ class MaxCutInterface:
                 submatrix = matrix[i:end_i, j:end_j]
                 
                 # 如果需要，填充到 crossbar 大小
+                # 分割子陣列給sub matrix
                 if submatrix.shape[0] < rows_per_xbar or submatrix.shape[1] < cols_per_xbar:
                     padded = np.zeros((rows_per_xbar, cols_per_xbar))
                     padded[:submatrix.shape[0], :submatrix.shape[1]] = submatrix
